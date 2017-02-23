@@ -1,0 +1,6 @@
+[package]
+name = "loxi"
+version = "0.1.0"
+authors = ["Usman Khan <usmankhan9190@gmail.com>"]
+
+[dependencies]

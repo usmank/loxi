@@ -10,7 +10,6 @@ fn main() {
     } else if args.len() == 2 {
         loxi::loxi::run_file(&args[1]);
     } else {
-        println!("bout to run repl");
         loxi::loxi::run_repl();
     }
 }

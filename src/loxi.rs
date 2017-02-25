@@ -1,10 +1,11 @@
+use lexer;
+use parser;
 use std::error::Error;
 use std::fs::File;
 use std::io::{self, Read, Write};
 use std::path::Path;
 
 // Run the given source file.
-// TODO: Finish it!
 pub fn run_file(filename: &str) {
     let path = Path::new(filename);
 
@@ -15,17 +16,23 @@ pub fn run_file(filename: &str) {
 
     let mut source = String::new();
     file.read_to_string(&mut source).expect("Couldn't read from file");
-    println!("{}", source);
+
+    run(&source);
 }
 
 // Receive input from stdin and run each line.
-// TODO: Finish it!
 pub fn run_repl() {
     loop {
-        let mut buffer = String::new();
+        let mut line = String::new();
         print!("> ");
         io::stdout().flush().unwrap();
-        io::stdin().read_line(&mut buffer).expect("Couldn't read from stdin");
-        print!("{}", buffer);
+        io::stdin().read_line(&mut line).expect("Couldn't read from stdin");
+
+        run(&line);
     }
+}
+
+fn run(source: &str) {
+    let tokens = lexer::lex(source);
+    parser::parse(&tokens);
 }

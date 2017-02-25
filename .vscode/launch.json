@@ -4,6 +4,15 @@
         {
             "type": "lldb",
             "request": "launch",
+            "name": "Debug File",
+            "program": "${workspaceRoot}/target/debug/loxi",
+            "args": ["${workspaceRoot}/src/test/test.lox"],
+            "cwd": "${workspaceRoot}",
+            "terminal": "integrated"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
             "name": "Debug REPL",
             "program": "${workspaceRoot}/target/debug/loxi",
             "args": [],

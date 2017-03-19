@@ -1,3 +1,5 @@
+extern crate itertools;
+
 pub mod loxi;
 
 mod lexer;

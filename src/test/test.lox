@@ -1,6 +1,17 @@
-var a = 1
-if (a<2) {
+// This is a comment
+var a = 1 // End of line comment
+if (a!=1) {
   print "hello";
-} else {
+} else if (a == 1) {
   print "world";
+} else if (a < 1) {
+  print "bye";
+} else if (a <= 1) {
+  print "bye";
+} else if (a > 1) {
+  print "bye";
+} else if (a >= 1) {
+  print "bye";
+} else {
+  print "bye";
 }

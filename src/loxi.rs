@@ -1,4 +1,4 @@
-use lexer::Lexer;
+use lexer;
 use parser;
 use std::error::Error;
 use std::fs::File;
@@ -33,7 +33,6 @@ pub fn run_repl() {
 }
 
 fn run(source: &str) {
-    let mut lexer = Lexer::new(source);
-    let tokens = lexer.lex();
+    let tokens = lexer::lex(source);
     parser::parse(&tokens);
 }

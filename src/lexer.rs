@@ -2,190 +2,166 @@ use itertools::multipeek;
 use std::fmt;
 use std::str;
 
-#[derive(Debug)]
-pub struct Lexer<'a> {
-    lines: str::Lines<'a>,
-    line_number: usize,
-}
+// TODO: Return Result<Error, Vec<Token>> instead.
+pub fn lex(source: &str) -> Vec<Token> {
+    let mut tokens = Vec::new();
 
-impl<'a> Lexer<'a> {
-    pub fn new(source: &'a str) -> Lexer<'a> {
-        Lexer {
-            lines: source.lines(),
-            line_number: 0,
+    'line_loop: for (i, line) in source.lines().enumerate() {
+        let bytes = line.as_bytes();
+        let line_number = i + 1;
+        let mut iter = multipeek(bytes.iter().enumerate());
+
+        'byte_loop: while let Some((j, c)) = iter.next() {
+            let token = match *c {
+                b'(' => {
+                    Token::LeftParen {
+                        lexeme: str::from_utf8(&bytes[j..j + 1]).unwrap(),
+                        source_position: line_number,
+                    }
+                }
+                b')' => {
+                    Token::RightParen {
+                        lexeme: str::from_utf8(&bytes[j..j + 1]).unwrap(),
+                        source_position: line_number,
+                    }
+                }
+                b'{' => {
+                    Token::LeftBrace {
+                        lexeme: str::from_utf8(&bytes[j..j + 1]).unwrap(),
+                        source_position: line_number,
+                    }
+                }
+                b'}' => {
+                    Token::RightBrace {
+                        lexeme: str::from_utf8(&bytes[j..j + 1]).unwrap(),
+                        source_position: line_number,
+                    }
+                }
+                b',' => {
+                    Token::Comma {
+                        lexeme: str::from_utf8(&bytes[j..j + 1]).unwrap(),
+                        source_position: line_number,
+                    }
+                }
+                b'.' => {
+                    Token::Dot {
+                        lexeme: str::from_utf8(&bytes[j..j + 1]).unwrap(),
+                        source_position: line_number,
+                    }
+                }
+                b'-' => {
+                    Token::Minus {
+                        lexeme: str::from_utf8(&bytes[j..j + 1]).unwrap(),
+                        source_position: line_number,
+                    }
+                }
+                b'+' => {
+                    Token::Plus {
+                        lexeme: str::from_utf8(&bytes[j..j + 1]).unwrap(),
+                        source_position: line_number,
+                    }
+                }
+                b';' => {
+                    Token::Semicolon {
+                        lexeme: str::from_utf8(&bytes[j..j + 1]).unwrap(),
+                        source_position: line_number,
+                    }
+                }
+                b'*' => {
+                    Token::Asterisk {
+                        lexeme: str::from_utf8(&bytes[j..j + 1]).unwrap(),
+                        source_position: line_number,
+                    }
+                }
+                b'!' => {
+                    match iter.peek() {
+                        Some(&(_, &b'=')) => {
+                            iter.next();
+                            Token::BangEqual {
+                                lexeme: str::from_utf8(&bytes[j..j + 2]).unwrap(),
+                                source_position: line_number,
+                            }
+                        }
+                        _ => {
+                            Token::Bang {
+                                lexeme: str::from_utf8(&bytes[j..j + 1]).unwrap(),
+                                source_position: line_number,
+                            }
+                        }
+                    }
+                }
+                b'=' => {
+                    match iter.peek() {
+                        Some(&(_, &b'=')) => {
+                            iter.next();
+                            Token::EqualEqual {
+                                lexeme: str::from_utf8(&bytes[j..j + 2]).unwrap(),
+                                source_position: line_number,
+                            }
+                        }
+                        _ => {
+                            Token::Equal {
+                                lexeme: str::from_utf8(&bytes[j..j + 1]).unwrap(),
+                                source_position: line_number,
+                            }
+                        }
+                    }
+                }
+                b'<' => {
+                    match iter.peek() {
+                        Some(&(_, &b'=')) => {
+                            iter.next();
+                            Token::LessThanOrEqual {
+                                lexeme: str::from_utf8(&bytes[j..j + 2]).unwrap(),
+                                source_position: line_number,
+                            }
+                        }
+                        _ => {
+                            Token::LessThan {
+                                lexeme: str::from_utf8(&bytes[j..j + 1]).unwrap(),
+                                source_position: line_number,
+                            }
+                        }
+                    }
+                }
+                b'>' => {
+                    match iter.peek() {
+                        Some(&(_, &b'=')) => {
+                            iter.next();
+                            Token::GreaterThanOrEqual {
+                                lexeme: str::from_utf8(&bytes[j..j + 2]).unwrap(),
+                                source_position: line_number,
+                            }
+                        }
+                        _ => {
+                            Token::GreaterThan {
+                                lexeme: str::from_utf8(&bytes[j..j + 1]).unwrap(),
+                                source_position: line_number,
+                            }
+                        }
+                    }
+                }
+                b'/' => {
+                    match iter.peek() {
+                        Some(&(_, &b'/')) => {
+                            // Encountered a comment so continue to next line.
+                            continue 'line_loop;
+                        }
+                        _ => {
+                            Token::Slash {
+                                lexeme: str::from_utf8(&bytes[j..j + 1]).unwrap(),
+                                source_position: line_number,
+                            }
+                        }
+                    }
+                }
+                // TODO: This should eventually emit an error instead of just continuing.
+                _ => continue,
+            };
+            tokens.push(token);
         }
     }
-
-    // TODO: Return Result<Error, Vec<Token>> instead.
-    pub fn lex(&mut self) -> Vec<Token> {
-        let mut tokens = Vec::new();
-
-        'line_loop: for (i, line) in self.lines.by_ref().enumerate() {
-            let bytes = line.as_bytes();
-            let mut iter = multipeek(bytes.iter().enumerate());
-
-            self.line_number = i + 1;
-
-            'byte_loop: while let Some((j, c)) = iter.next() {
-                let token = match *c {
-                    b'(' => {
-                        Token::LeftParen {
-                            lexeme: str::from_utf8(&bytes[j..j + 1]).unwrap(),
-                            source_position: self.line_number,
-                        }
-                    }
-                    b')' => {
-                        Token::RightParen {
-                            lexeme: str::from_utf8(&bytes[j..j + 1]).unwrap(),
-                            source_position: self.line_number,
-                        }
-                    }
-                    b'{' => {
-                        Token::LeftBrace {
-                            lexeme: str::from_utf8(&bytes[j..j + 1]).unwrap(),
-                            source_position: self.line_number,
-                        }
-                    }
-                    b'}' => {
-                        Token::RightBrace {
-                            lexeme: str::from_utf8(&bytes[j..j + 1]).unwrap(),
-                            source_position: self.line_number,
-                        }
-                    }
-                    b',' => {
-                        Token::Comma {
-                            lexeme: str::from_utf8(&bytes[j..j + 1]).unwrap(),
-                            source_position: self.line_number,
-                        }
-                    }
-                    b'.' => {
-                        Token::Dot {
-                            lexeme: str::from_utf8(&bytes[j..j + 1]).unwrap(),
-                            source_position: self.line_number,
-                        }
-                    }
-                    b'-' => {
-                        Token::Minus {
-                            lexeme: str::from_utf8(&bytes[j..j + 1]).unwrap(),
-                            source_position: self.line_number,
-                        }
-                    }
-                    b'+' => {
-                        Token::Plus {
-                            lexeme: str::from_utf8(&bytes[j..j + 1]).unwrap(),
-                            source_position: self.line_number,
-                        }
-                    }
-                    b';' => {
-                        Token::Semicolon {
-                            lexeme: str::from_utf8(&bytes[j..j + 1]).unwrap(),
-                            source_position: self.line_number,
-                        }
-                    }
-                    b'*' => {
-                        Token::Asterisk {
-                            lexeme: str::from_utf8(&bytes[j..j + 1]).unwrap(),
-                            source_position: self.line_number,
-                        }
-                    }
-                    b'!' => {
-                        match iter.peek() {
-                            Some(&(_, &b'=')) => {
-                                iter.next();
-                                Token::BangEqual {
-                                    lexeme: str::from_utf8(&bytes[j..j + 2]).unwrap(),
-                                    source_position: self.line_number,
-                                }
-                            }
-                            _ => {
-                                Token::Bang {
-                                    lexeme: str::from_utf8(&bytes[j..j + 1]).unwrap(),
-                                    source_position: self.line_number,
-                                }
-                            }
-                        }
-                    }
-                    b'=' => {
-                        match iter.peek() {
-                            Some(&(_, &b'=')) => {
-                                iter.next();
-                                Token::EqualEqual {
-                                    lexeme: str::from_utf8(&bytes[j..j + 2]).unwrap(),
-                                    source_position: self.line_number,
-                                }
-                            }
-                            _ => {
-                                Token::Equal {
-                                    lexeme: str::from_utf8(&bytes[j..j + 1]).unwrap(),
-                                    source_position: self.line_number,
-                                }
-                            }
-                        }
-                    }
-                    b'<' => {
-                        match iter.peek() {
-                            Some(&(_, &b'=')) => {
-                                iter.next();
-                                Token::LessThanOrEqual {
-                                    lexeme: str::from_utf8(&bytes[j..j + 2]).unwrap(),
-                                    source_position: self.line_number,
-                                }
-                            }
-                            _ => {
-                                Token::LessThan {
-                                    lexeme: str::from_utf8(&bytes[j..j + 1]).unwrap(),
-                                    source_position: self.line_number,
-                                }
-                            }
-                        }
-                    }
-                    b'>' => {
-                        match iter.peek() {
-                            Some(&(_, &b'=')) => {
-                                iter.next();
-                                Token::GreaterThanOrEqual {
-                                    lexeme: str::from_utf8(&bytes[j..j + 2]).unwrap(),
-                                    source_position: self.line_number,
-                                }
-                            }
-                            _ => {
-                                Token::GreaterThan {
-                                    lexeme: str::from_utf8(&bytes[j..j + 1]).unwrap(),
-                                    source_position: self.line_number,
-                                }
-                            }
-                        }
-                    }
-                    b'/' => {
-                        match iter.peek() {
-                            Some(&(_, &b'/')) => {
-                                let mut next = iter.next();
-                                while let Some((_, next_byte)) = next {
-                                    if next_byte == &b'\n' {
-                                        break;
-                                    } else {
-                                        next = iter.next();
-                                    }
-                                }
-                                Token::Dummy
-                            }
-                            _ => {
-                                Token::Slash {
-                                    lexeme: str::from_utf8(&bytes[j..j + 1]).unwrap(),
-                                    source_position: self.line_number,
-                                }
-                            }
-                        }
-                    }
-                    _ => continue,
-                };
-
-                tokens.push(token);
-            }
-        }
-
-        tokens
-    }
+    tokens
 }
 
 pub type SourcePosition = usize;
@@ -347,7 +323,6 @@ pub enum Token<'a> {
         lexeme: &'a str,
         source_position: SourcePosition,
     },
-    Dummy,
     Eof,
 }
 
@@ -392,7 +367,6 @@ impl<'a> fmt::Display for Token<'a> {
             Token::True { lexeme, source_position: _ } => write!(f, "{}", lexeme),
             Token::Var { lexeme, source_position: _ } => write!(f, "{}", lexeme),
             Token::While { lexeme, source_position: _ } => write!(f, "{}", lexeme),
-            Token::Dummy => write!(f, "<Dummy>"),
             Token::Eof => Ok(()),
         }
     }

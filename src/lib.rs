@@ -4,6 +4,7 @@ pub mod loxi;
 
 mod lexer;
 mod parser;
+mod result;
 
 #[cfg(test)]
 mod tests {

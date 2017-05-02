@@ -33,6 +33,6 @@ pub fn run_repl() {
 }
 
 fn run(source: &str) {
-    let tokens = lexer::lex(source);
+    let tokens = lexer::lex(source).unwrap();
     parser::parse(&tokens);
 }

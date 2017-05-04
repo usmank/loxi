@@ -13,6 +13,15 @@
         {
             "type": "lldb",
             "request": "launch",
+            "name": "Debug String File",
+            "program": "${workspaceRoot}/target/debug/loxi",
+            "args": ["${workspaceRoot}/src/test/string-test.lox"],
+            "cwd": "${workspaceRoot}",
+            "terminal": "integrated"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
             "name": "Debug REPL",
             "program": "${workspaceRoot}/target/debug/loxi",
             "args": [],

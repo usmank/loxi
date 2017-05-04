@@ -1,4 +1,3 @@
-use itertools::multipeek;
 use std::fmt;
 use std::str;
 use result::Result;
@@ -9,7 +8,7 @@ pub fn lex(source: &str) -> Result<Vec<Token>> {
     'line_loop: for (i, line) in source.lines().enumerate() {
         let char_indices = line.char_indices();
         let line_number = i + 1;
-        let mut iter = multipeek(char_indices);
+        let mut iter = char_indices.peekable();
 
         'char_loop: while let Some((j, c)) = iter.next() {
             let token = match c {
@@ -155,6 +154,32 @@ pub fn lex(source: &str) -> Result<Vec<Token>> {
                         }
                     }
                 }
+                '"' => {
+                    while let Some(&(_, d)) = iter.peek() {
+                        match d {
+                            '"' => break,
+                            _ => {
+                                iter.next();
+                            }
+                        }
+                    }
+
+                    // Either we found the closing double quote, or we have an untermintated string.
+                    if let Some((k, '"')) = iter.next() {
+                        Token::String {
+                            lexeme: &line[j..k + 1],
+                            source_position: line_number,
+                            literal: &line[j + 1..k],
+                        }
+                    } else {
+                        // TODO: Don't scream.
+                        panic!("aaaaaaahhhhhhhhhhh");
+                    }
+                }
+                // Ignore whitespace
+                ' ' => continue,
+                '\t' => continue,
+                '\r' => continue,
                 // TODO: This should eventually emit an error instead of just continuing.
                 _ => continue,
                 //_ => return Err(Error::SyntaxError(line_number)),
@@ -253,7 +278,7 @@ pub enum Token<'a> {
     String {
         lexeme: &'a str,
         source_position: SourcePosition,
-        literal: String,
+        literal: &'a str,
     },
     Number {
         lexeme: &'a str,

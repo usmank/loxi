@@ -1,17 +1,17 @@
 // This is a comment
 var a = 1 // End of line comment
 if (a!=1) {
-  print "hello";
-} else if (a == 1) {
-  print "world";
-} else if (a < 1) {
-  print "bye";
-} else if (a <= 1) {
-  print "bye";
-} else if (a > 1) {
-  print "bye";
-} else if (a >= 1) {
-  print "bye";
+  print "apple";
+} else if (a == 3.14) {
+  print "banana";
+} else if (a < 2) {
+  print "cantaloupe";
+} else if (a <= 10) {
+  print "durian";
+} else if (a > 123) {
+  print "eggplant";
+} else if (a >= 999999) {
+  print "fig";
 } else {
-  print "bye";
+  print "grape";
 }

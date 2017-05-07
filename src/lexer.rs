@@ -1,14 +1,18 @@
 use std::fmt;
+use itertools::{MultiPeek, multipeek};
 use std::str;
 use result::Result;
 
+const RADIX: u32 = 10;
+
+// TODO: Remove unwrap().
 pub fn lex(source: &str) -> Result<Vec<Token>> {
     let mut tokens = Vec::new();
 
     'line_loop: for (i, line) in source.lines().enumerate() {
         let char_indices = line.char_indices();
         let line_number = i + 1;
-        let mut iter = char_indices.peekable();
+        let mut iter = multipeek(char_indices);
 
         'char_loop: while let Some((j, c)) = iter.next() {
             let token = match c {
@@ -155,39 +159,111 @@ pub fn lex(source: &str) -> Result<Vec<Token>> {
                     }
                 }
                 '"' => {
-                    while let Some(&(_, d)) = iter.peek() {
-                        match d {
-                            '"' => break,
-                            _ => {
-                                iter.next();
-                            }
-                        }
-                    }
-
-                    // Either we found the closing double quote, or we have an untermintated string.
-                    if let Some((k, '"')) = iter.next() {
-                        Token::String {
-                            lexeme: &line[j..k + 1],
-                            source_position: line_number,
-                            literal: &line[j + 1..k],
-                        }
-                    } else {
-                        // TODO: Don't scream.
-                        panic!("aaaaaaahhhhhhhhhhh");
+                    match string(&mut iter, line, j, line_number) {
+                        Some(t) => t,
+                        // TODO: Don't screem.
+                        None => panic!("aaaaaahhhhhhhhh!"),
                     }
                 }
+                n if n.is_digit(RADIX) => number(&mut iter, line, j, line_number),
+
                 // Ignore whitespace
                 ' ' => continue,
                 '\t' => continue,
                 '\r' => continue,
-                // TODO: This should eventually emit an error instead of just continuing.
+
+                // TODO: Unrognized character should result in syntax error.
                 _ => continue,
-                //_ => return Err(Error::SyntaxError(line_number)),
             };
             tokens.push(token);
         }
     }
     Ok(tokens)
+}
+
+fn string<'a, I>(iter: &mut MultiPeek<I>,
+                 line: &'a str,
+                 start: usize,
+                 line_number: usize)
+                 -> Option<Token<'a>>
+    where I: Iterator<Item = (usize, char)>
+{
+    while let Some(&(_, c)) = iter.peek() {
+        match c {
+            '"' => break,
+            _ => {
+                iter.next();
+            }
+        }
+    }
+
+    // Either we found the closing double quote, or we have an untermintated string.
+    if let Some((k, '"')) = iter.next() {
+        Some(Token::String {
+            lexeme: &line[start..k + 1],
+            source_position: line_number,
+            literal: &line[start + 1..k],
+        })
+    } else {
+        None
+    }
+}
+
+fn number<'a, I>(iter: &mut MultiPeek<I>,
+                 line: &'a str,
+                 start: usize,
+                 line_number: usize)
+                 -> Token<'a>
+    where I: Iterator<Item = (usize, char)>
+{
+    // Scan for zero or more digits making up the integral part of the number.
+    let integer_length = digits(iter);
+
+    // Scan for one or more digits after the decimal point which forms the fractional part of the number.
+    let fraction_length = if let Some(&(_, '.')) = iter.peek() {
+        if let Some(&(_, d)) = iter.peek() {
+            if d.is_digit(RADIX) {
+                iter.next();
+                let fraction_length = digits(iter);
+
+                // + 1 to account for the decimal point.
+                fraction_length + 1
+            } else {
+                0
+            }
+        } else {
+            0
+        }
+    } else {
+        0
+    };
+
+    let lexeme = &line[start..start + integer_length + fraction_length + 1];
+
+    Token::Number {
+        lexeme: lexeme,
+        source_position: line_number,
+        literal: lexeme.parse().unwrap(),
+    }
+}
+
+// Returns a count of the number consecutive digits. The iterator is advanced so that it points at the last digit in the sequence.
+fn digits<I>(iter: &mut MultiPeek<I>) -> usize
+    where I: Iterator<Item = (usize, char)>
+{
+    let mut result: usize = 0;
+
+    while let Some(&(_, c)) = iter.peek() {
+        if c.is_digit(RADIX) {
+            result += 1;
+            iter.next();
+        } else {
+            iter.reset_peek();
+            break;
+        }
+    }
+
+    result
 }
 
 pub type SourcePosition = usize;

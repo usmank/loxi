@@ -5,7 +5,6 @@ use result::Result;
 
 const RADIX: u32 = 10;
 
-// TODO: Remove unwrap().
 pub fn lex(source: &str) -> Result<Vec<Token>> {
     let mut tokens = Vec::new();
 

@@ -82,10 +82,7 @@ pub fn lex(source: &str) -> Result<Vec<Token>> {
                 }
                 c if c.is_alphabetic() || c == '_' => {
                     let lexeme = identifier(&mut iter, line, j);
-                    match map_lexeme_to_keyword(lexeme) {
-                        Some(token_type) => (token_type, lexeme, Literal::None),
-                        None => (TokenType::Identifier, lexeme, Literal::None),
-                    }
+                    (map_lexeme_to_keyword(lexeme), lexeme, Literal::None)
                 }
                 // Ignore whitespace
                 c if c.is_whitespace() => continue,
@@ -103,25 +100,26 @@ pub fn lex(source: &str) -> Result<Vec<Token>> {
     Ok(tokens)
 }
 
-fn map_lexeme_to_keyword<'a>(lexeme: &'a str) -> Option<TokenType> {
+// Checks if the given lexeme is a keyword, returns the correct keyword TokenType if it is, None otherwise.
+fn map_lexeme_to_keyword<'a>(lexeme: &'a str) -> TokenType {
     match lexeme {
-        "and" => Some(TokenType::And),
-        "class" => Some(TokenType::Class),
-        "else" => Some(TokenType::Else),
-        "false" => Some(TokenType::False),
-        "for" => Some(TokenType::For),
-        "fun" => Some(TokenType::Fun),
-        "if" => Some(TokenType::If),
-        "nil" => Some(TokenType::Nil),
-        "or" => Some(TokenType::Or),
-        "print" => Some(TokenType::Print),
-        "return" => Some(TokenType::Return),
-        "super" => Some(TokenType::Super),
-        "this" => Some(TokenType::This),
-        "true" => Some(TokenType::True),
-        "var" => Some(TokenType::Var),
-        "while" => Some(TokenType::While),
-        _ => None,
+        "and" => TokenType::And,
+        "class" => TokenType::Class,
+        "else" => TokenType::Else,
+        "false" => TokenType::False,
+        "for" => TokenType::For,
+        "fun" => TokenType::Fun,
+        "if" => TokenType::If,
+        "nil" => TokenType::Nil,
+        "or" => TokenType::Or,
+        "print" => TokenType::Print,
+        "return" => TokenType::Return,
+        "super" => TokenType::Super,
+        "this" => TokenType::This,
+        "true" => TokenType::True,
+        "var" => TokenType::Var,
+        "while" => TokenType::While,
+        _ => TokenType::Identifier,
     }
 }
 

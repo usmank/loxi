@@ -8,7 +8,7 @@ pub type Result<T> = result::Result<T, Error>;
 #[derive(Debug)]
 pub enum Error {
     SyntaxError {
-        message: &'static str,
+        message: String,
         source_position: SourcePosition,
     },
     MultipleErrors(Vec<Error>),
@@ -17,7 +17,7 @@ pub enum Error {
 impl<'a> fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            Error::SyntaxError { message: m, source_position: (l, c) } => {
+            Error::SyntaxError { message: ref m, source_position: (l, c) } => {
                 write!(f, "Syntax Error @ {}:{}: {}", l, c, m)
             }
             Error::MultipleErrors(ref errors) => {

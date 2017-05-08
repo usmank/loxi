@@ -74,25 +74,29 @@ pub fn lex(source: &str) -> Result<Vec<Token>> {
                         Some((lexeme, literal)) => (TokenType::Str, lexeme, literal),
                         None => {
                             return Err(Error::SyntaxError {
-                                message: "String literal missing closing '\"'",
+                                message: format!("String literal missing closing '\"'"),
                                 source_position: source_position,
                             });
                         }
                     }
                 }
+                // Number
                 c if c.is_digit(RADIX) => {
                     let (lexeme, literal) = number(&mut iter, line, j);
                     (TokenType::Number, lexeme, literal)
                 }
+                // Identifier
                 c if c.is_alphabetic() || c == '_' => {
                     let lexeme = identifier(&mut iter, line, j);
                     (map_lexeme_to_keyword(lexeme), lexeme, Literal::None)
                 }
                 // Ignore whitespace
                 c if c.is_whitespace() => continue,
-                _ => {
+
+                // Default case
+                c => {
                     return Err(Error::SyntaxError {
-                        message: "Unrecognized character",
+                        message: format!("Unrecognized character '{}'", c),
                         source_position: source_position,
                     });
                 }

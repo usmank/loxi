@@ -1,6 +1,6 @@
 use std::fmt;
 use itertools::{MultiPeek, multipeek};
-use result::Result;
+use result::{Error, Result};
 
 const RADIX: u32 = 10;
 
@@ -9,10 +9,10 @@ pub fn lex(source: &str) -> Result<Vec<Token>> {
 
     'line_loop: for (i, line) in source.lines().enumerate() {
         let char_indices = line.char_indices();
-        let line_number = i + 1;
         let mut iter = multipeek(char_indices);
 
         'char_loop: while let Some((j, c)) = iter.next() {
+            let source_position = (i + 1, j + 1);
             let (token_type, lexeme, literal) = match c {
                 '(' => (TokenType::LeftParen, &line[j..j + 1], Literal::None),
                 ')' => (TokenType::RightParen, &line[j..j + 1], Literal::None),
@@ -72,8 +72,12 @@ pub fn lex(source: &str) -> Result<Vec<Token>> {
                 '"' => {
                     match string(&mut iter, line, j) {
                         Some((lexeme, literal)) => (TokenType::Str, lexeme, literal),
-                        // TODO: Don't screem.
-                        None => panic!("aaaaaahhhhhhhhh!"),
+                        None => {
+                            return Err(Error::SyntaxError {
+                                message: "String literal missing closing '\"'",
+                                source_position: source_position,
+                            });
+                        }
                     }
                 }
                 c if c.is_digit(RADIX) => {
@@ -86,14 +90,18 @@ pub fn lex(source: &str) -> Result<Vec<Token>> {
                 }
                 // Ignore whitespace
                 c if c.is_whitespace() => continue,
-                // TODO: Unrecognized characters should result in a syntax error.
-                _ => continue,
+                _ => {
+                    return Err(Error::SyntaxError {
+                        message: "Unrecognized character",
+                        source_position: source_position,
+                    });
+                }
             };
             tokens.push(Token {
                 token_type: token_type,
                 lexeme: lexeme,
                 literal: literal,
-                source_position: line_number,
+                source_position: source_position,
             });
         }
     }
@@ -271,7 +279,8 @@ pub enum Literal<'a> {
     Number(f64),
 }
 
-pub type SourcePosition = usize;
+// Source position is defined by a tuple containing the line number and character index.
+pub type SourcePosition = (usize, usize);
 
 impl<'a> fmt::Display for Token<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {

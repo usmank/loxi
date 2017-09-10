@@ -109,10 +109,19 @@ pub fn lex(source: &str) -> Result<Vec<Token>> {
             });
         }
     }
+
+    // Append EOF token once we hit the end.
+    tokens.push(Token {
+        token_type: TokenType::Eof,
+        lexeme: "",
+        literal: Literal::None,
+        source_position: (0, 0),
+    });
+
     Ok(tokens)
 }
 
-// Checks if the given lexeme is a keyword, returns the correct keyword TokenType if it is, None otherwise.
+// Maps the given lexeme to the corresponding TokenType.
 fn map_lexeme_to_keyword<'a>(lexeme: &'a str) -> TokenType {
     match lexeme {
         "and" => TokenType::And,
@@ -226,14 +235,13 @@ fn identifier<'a, I>(iter: &mut MultiPeek<I>, line: &'a str, start: usize) -> &'
 
 #[derive(Debug)]
 pub struct Token<'a> {
-    token_type: TokenType,
-    lexeme: &'a str,
-    literal: Literal<'a>,
-    source_position: SourcePosition,
+    pub token_type: TokenType,
+    pub lexeme: &'a str,
+    pub literal: Literal<'a>,
+    pub source_position: SourcePosition,
 }
 
 #[derive(Debug)]
-#[allow(dead_code)]
 pub enum TokenType {
     LeftParen,
     RightParen,

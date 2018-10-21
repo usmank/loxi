@@ -1,7 +1,7 @@
 [package]
 name = "loxi"
 version = "0.1.0"
-authors = ["Usman Khan <usmankhan9190@gmail.com>"]
+authors = ["Usman Khan <usman@usmankhan.ca>"]
 
 [dependencies]
 itertools = "0.5.9"

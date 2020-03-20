@@ -22,7 +22,7 @@ impl<'a> fmt::Display for Error {
             }
             Error::MultipleErrors(ref errors) => {
                 for error in errors {
-                    try!(write!(f, "{}", error));
+                    write!(f, "{}", error)?;
                 }
                 Ok(())
             }

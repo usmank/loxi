@@ -5,6 +5,7 @@ pub mod loxi;
 mod lexer;
 mod parser;
 mod result;
+mod binary_tree;
 
 #[cfg(test)]
 mod tests {

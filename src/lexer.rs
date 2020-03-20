@@ -11,7 +11,7 @@ pub fn lex(source: &str) -> Result<Vec<Token>> {
         let char_indices = line.char_indices();
         let mut iter = multipeek(char_indices);
 
-        'char_loop: while let Some((j, c)) = iter.next() {
+        while let Some((j, c)) = iter.next() {
             let source_position = (i + 1, j + 1);
             let (token_type, lexeme, literal) = match c {
                 '(' => (TokenType::LeftParen, &line[j..j + 1], Literal::None),

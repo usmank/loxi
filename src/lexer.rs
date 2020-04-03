@@ -167,13 +167,16 @@ fn string<'a, I>(iter: &mut MultiPeek<I>,
     }
 }
 
-fn number<'a, I>(iter: &mut MultiPeek<I>, line: &'a str, start: usize) -> (&'a str, Literal<'a>)
+fn number<'a, I>(iter: &mut MultiPeek<I>,
+                 line: &'a str,
+                 start: usize) -> (&'a str, Literal<'a>)
     where I: Iterator<Item = (usize, char)>
 {
     // Scan for zero or more digits making up the integral part of the number.
     let integer_length = digits(iter);
 
-    // Scan for one or more digits after the decimal point which forms the fractional part of the number.
+    // Scan for one or more digits after the decimal point which forms the
+    // fractional part of the number.
     let fraction_length = if let Some(&(_, '.')) = iter.peek() {
         if let Some(&(_, d)) = iter.peek() {
             if d.is_digit(RADIX) {
@@ -196,7 +199,8 @@ fn number<'a, I>(iter: &mut MultiPeek<I>, line: &'a str, start: usize) -> (&'a s
     (lexeme, Literal::Number(lexeme.parse().unwrap()))
 }
 
-// Returns a count of the number consecutive digits. The iterator is advanced so that it points at the last digit in the sequence.
+// Returns a count of the number consecutive digits. The iterator is advanced so
+// that it points at the last digit in the sequence.
 fn digits<I>(iter: &mut MultiPeek<I>) -> usize
     where I: Iterator<Item = (usize, char)>
 {
@@ -215,7 +219,9 @@ fn digits<I>(iter: &mut MultiPeek<I>) -> usize
     result
 }
 
-fn identifier<'a, I>(iter: &mut MultiPeek<I>, line: &'a str, start: usize) -> &'a str
+fn identifier<'a, I>(iter: &mut MultiPeek<I>,
+                     line: &'a str,
+                     start: usize) -> &'a str
     where I: Iterator<Item = (usize, char)>
 {
     let mut length = 0;
@@ -233,7 +239,7 @@ fn identifier<'a, I>(iter: &mut MultiPeek<I>, line: &'a str, start: usize) -> &'
     &line[start..start + length + 1]
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Token<'a> {
     pub token_type: TokenType,
     pub lexeme: &'a str,
@@ -241,7 +247,7 @@ pub struct Token<'a> {
     pub source_position: SourcePosition,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum TokenType {
     LeftParen,
     RightParen,
@@ -284,7 +290,7 @@ pub enum TokenType {
     Eof,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Literal<'a> {
     None,
     Str(&'a str),
@@ -297,5 +303,154 @@ pub type SourcePosition = (usize, usize);
 impl<'a> fmt::Display for Token<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.lexeme)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn empty_source() {
+        let source = "";
+
+        if let Result::Ok(tokens) = lex(source) {
+            assert_eq!(tokens.len(), 1);
+
+            let Token { ref token_type, .. } = tokens[0];
+            assert_eq!(*token_type, TokenType::Eof);
+        } else {
+            panic!("Expected Ok");
+        }
+    }
+
+    #[test]
+    fn number() {
+        let source = "42.0";
+
+        if let Result::Ok(tokens) = lex(source) {
+            assert_eq!(tokens.len(), 2);
+
+            let Token { ref token_type, lexeme, ref literal, .. } = tokens[0];
+
+            assert_eq!(*token_type, TokenType::Number);
+            assert_eq!(lexeme, "42.0");
+
+            match literal {
+                &Literal::Number(value) => {
+                    assert_eq!(value, 42.0);
+                },
+                _ => {
+                    panic!("Expected Literal::Number")
+                }
+            };
+        } else {
+            panic!("Expected Ok");
+        }
+    }
+
+    #[test]
+    fn str() {
+        let source = "\"This is a string\"";
+
+        if let Result::Ok(tokens) = lex(source) {
+            assert_eq!(tokens.len(), 2);
+
+            let Token { ref token_type, lexeme, ref literal, .. } = tokens[0];
+
+            assert_eq!(*token_type, TokenType::Str);
+            assert_eq!(lexeme, "\"This is a string\"");
+
+            match literal {
+                &Literal::Str(value) => {
+                    assert_eq!(value, "This is a string");
+                },
+                _ => {
+                    panic!("Expected Literal::Str")
+                }
+            };
+        } else {
+            panic!("Expected Ok");
+        }
+    }
+
+    #[test]
+    fn strWithMissingQuote() {
+        let source = "\"Missing closing quote";
+
+        if let Result::Ok(_) = lex(source) {
+            panic!("Expected Err");
+        }
+    }
+
+    #[test]
+    fn tokenize() {
+        let source = "identifier = (2 + 3) * 1";
+
+        if let Result::Ok(tokens) = lex(source) {
+            assert_eq!(tokens.len(), 10);
+
+            // identifier
+            let Token { ref token_type, lexeme, ref literal, .. } = tokens[0];
+            assert_eq!(*token_type, TokenType::Identifier);
+            assert_eq!(lexeme, "identifier");
+            assert_eq!(*literal, Literal::None);
+
+            // =
+            let Token { ref token_type, lexeme, ref literal, .. } = tokens[1];
+            assert_eq!(*token_type, TokenType::Equal);
+            assert_eq!(lexeme, "=");
+            assert_eq!(*literal, Literal::None);
+
+            // (
+            let Token { ref token_type, lexeme, ref literal, .. } = tokens[2];
+            assert_eq!(*token_type, TokenType::LeftParen);
+            assert_eq!(lexeme, "(");
+            assert_eq!(*literal, Literal::None);
+
+            // 2
+            let Token { ref token_type, lexeme, ref literal, .. } = tokens[3];
+            assert_eq!(*token_type, TokenType::Number);
+            assert_eq!(lexeme, "2");
+            assert_eq!(*literal, Literal::Number(2.0));
+
+            // =
+            let Token { ref token_type, lexeme, ref literal, .. } = tokens[4];
+            assert_eq!(*token_type, TokenType::Plus);
+            assert_eq!(lexeme, "+");
+            assert_eq!(*literal, Literal::None);
+
+            // 3
+            let Token { ref token_type, lexeme, ref literal, .. } = tokens[5];
+            assert_eq!(*token_type, TokenType::Number);
+            assert_eq!(lexeme, "3");
+            assert_eq!(*literal, Literal::Number(3.0));
+
+            // )
+            let Token { ref token_type, lexeme, ref literal, .. } = tokens[6];
+            assert_eq!(*token_type, TokenType::RightParen);
+            assert_eq!(lexeme, ")");
+            assert_eq!(*literal, Literal::None);
+
+            // *
+            let Token { ref token_type, lexeme, ref literal, .. } = tokens[7];
+            assert_eq!(*token_type, TokenType::Asterisk);
+            assert_eq!(lexeme, "*");
+            assert_eq!(*literal, Literal::None);
+
+            // 1
+            let Token { ref token_type, lexeme, ref literal, .. } = tokens[8];
+            assert_eq!(*token_type, TokenType::Number);
+            assert_eq!(lexeme, "1");
+            assert_eq!(*literal, Literal::Number(1.0));
+
+            // EOF
+            let Token { ref token_type, lexeme, ref literal, .. } = tokens[9];
+            assert_eq!(*token_type, TokenType::Eof);
+            assert_eq!(lexeme, "");
+            assert_eq!(*literal, Literal::None);
+        } else {
+            panic!("Expected Ok");
+        }
     }
 }

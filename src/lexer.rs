@@ -1,6 +1,6 @@
-use std::fmt;
-use itertools::{MultiPeek, multipeek};
+use itertools::{multipeek, MultiPeek};
 use result::{Error, Result};
+use std::fmt;
 
 const RADIX: u32 = 10;
 
@@ -13,82 +13,72 @@ pub fn lex(source: &str) -> Result<Vec<Token>> {
 
         while let Some((j, c)) = iter.next() {
             let source_position = (i + 1, j + 1);
-            let (token_type, lexeme, literal) = match c {
-                '(' => (TokenType::LeftParen, &line[j..j + 1], Literal::None),
-                ')' => (TokenType::RightParen, &line[j..j + 1], Literal::None),
-                '{' => (TokenType::LeftBrace, &line[j..j + 1], Literal::None),
-                '}' => (TokenType::RightBrace, &line[j..j + 1], Literal::None),
-                ',' => (TokenType::Comma, &line[j..j + 1], Literal::None),
-                '.' => (TokenType::Dot, &line[j..j + 1], Literal::None),
-                '-' => (TokenType::Minus, &line[j..j + 1], Literal::None),
-                '+' => (TokenType::Plus, &line[j..j + 1], Literal::None),
-                ';' => (TokenType::Semicolon, &line[j..j + 1], Literal::None),
-                '*' => (TokenType::Asterisk, &line[j..j + 1], Literal::None),
-                '!' => {
-                    match iter.peek() {
-                        Some(&(_, '=')) => {
-                            iter.next();
-                            (TokenType::BangEqual, &line[j..j + 2], Literal::None)
-                        }
-                        _ => (TokenType::Bang, &line[j..j + 1], Literal::None),
+            let (token_type, lexeme) = match c {
+                '(' => (TokenType::LeftParen, &line[j..j + 1]),
+                ')' => (TokenType::RightParen, &line[j..j + 1]),
+                '{' => (TokenType::LeftBrace, &line[j..j + 1]),
+                '}' => (TokenType::RightBrace, &line[j..j + 1]),
+                ',' => (TokenType::Comma, &line[j..j + 1]),
+                '.' => (TokenType::Dot, &line[j..j + 1]),
+                '-' => (TokenType::Minus, &line[j..j + 1]),
+                '+' => (TokenType::Plus, &line[j..j + 1]),
+                ';' => (TokenType::Semicolon, &line[j..j + 1]),
+                '*' => (TokenType::Asterisk, &line[j..j + 1]),
+                '!' => match iter.peek() {
+                    Some(&(_, '=')) => {
+                        iter.next();
+                        (TokenType::BangEqual, &line[j..j + 2])
                     }
-                }
-                '=' => {
-                    match iter.peek() {
-                        Some(&(_, '=')) => {
-                            iter.next();
-                            (TokenType::EqualEqual, &line[j..j + 2], Literal::None)
-                        }
-                        _ => (TokenType::Equal, &line[j..j + 1], Literal::None),
+                    _ => (TokenType::Bang, &line[j..j + 1]),
+                },
+                '=' => match iter.peek() {
+                    Some(&(_, '=')) => {
+                        iter.next();
+                        (TokenType::EqualEqual, &line[j..j + 2])
                     }
-                }
-                '<' => {
-                    match iter.peek() {
-                        Some(&(_, '=')) => {
-                            iter.next();
-                            (TokenType::LessThanOrEqual, &line[j..j + 2], Literal::None)
-                        }
-                        _ => (TokenType::LessThan, &line[j..j + 1], Literal::None),
+                    _ => (TokenType::Equal, &line[j..j + 1]),
+                },
+                '<' => match iter.peek() {
+                    Some(&(_, '=')) => {
+                        iter.next();
+                        (TokenType::LessThanOrEqual, &line[j..j + 2])
                     }
-                }
-                '>' => {
-                    match iter.peek() {
-                        Some(&(_, '=')) => {
-                            iter.next();
-                            (TokenType::GreaterThanOrEqual, &line[j..j + 2], Literal::None)
-                        }
-                        _ => (TokenType::GreaterThan, &line[j..j + 1], Literal::None),
+                    _ => (TokenType::LessThan, &line[j..j + 1]),
+                },
+                '>' => match iter.peek() {
+                    Some(&(_, '=')) => {
+                        iter.next();
+                        (TokenType::GreaterThanOrEqual, &line[j..j + 2])
                     }
-                }
+                    _ => (TokenType::GreaterThan, &line[j..j + 1]),
+                },
                 '/' => {
                     match iter.peek() {
                         Some(&(_, '/')) => {
                             // Encountered a comment, ignore the rest and continue to next line.
                             continue 'line_loop;
                         }
-                        _ => (TokenType::Slash, &line[j..j + 1], Literal::None),
+                        _ => (TokenType::Slash, &line[j..j + 1]),
                     }
                 }
-                '"' => {
-                    match string(&mut iter, line, j) {
-                        Some((lexeme, literal)) => (TokenType::Str, lexeme, literal),
-                        None => {
-                            return Err(Error::SyntaxError {
-                                message: format!("String literal missing closing '\"'"),
-                                source_position: source_position,
-                            });
-                        }
+                '"' => match string(&mut iter, line, j) {
+                    Some((lexeme, literal)) => (TokenType::Str(literal), lexeme),
+                    None => {
+                        return Err(Error::SyntaxError {
+                            message: "String literal missing closing '\"'".to_string(),
+                            source_position,
+                        });
                     }
-                }
+                },
                 // Number
                 c if c.is_digit(RADIX) => {
                     let (lexeme, literal) = number(&mut iter, line, j);
-                    (TokenType::Number, lexeme, literal)
+                    (TokenType::Number(literal), lexeme)
                 }
                 // Identifier
                 c if c.is_alphabetic() || c == '_' => {
                     let lexeme = identifier(&mut iter, line, j);
-                    (map_lexeme_to_keyword(lexeme), lexeme, Literal::None)
+                    (map_lexeme_to_keyword(lexeme), lexeme)
                 }
                 // Ignore whitespace
                 c if c.is_whitespace() => continue,
@@ -97,15 +87,14 @@ pub fn lex(source: &str) -> Result<Vec<Token>> {
                 c => {
                     return Err(Error::SyntaxError {
                         message: format!("Unrecognized character '{}'", c),
-                        source_position: source_position,
+                        source_position,
                     });
                 }
             };
             tokens.push(Token {
-                token_type: token_type,
-                lexeme: lexeme,
-                literal: literal,
-                source_position: source_position,
+                token_type,
+                lexeme,
+                source_position,
             });
         }
     }
@@ -114,7 +103,6 @@ pub fn lex(source: &str) -> Result<Vec<Token>> {
     tokens.push(Token {
         token_type: TokenType::Eof,
         lexeme: "",
-        literal: Literal::None,
         source_position: (0, 0),
     });
 
@@ -122,7 +110,7 @@ pub fn lex(source: &str) -> Result<Vec<Token>> {
 }
 
 // Maps the given lexeme to the corresponding TokenType.
-fn map_lexeme_to_keyword<'a>(lexeme: &'a str) -> TokenType {
+fn map_lexeme_to_keyword(lexeme: &str) -> TokenType {
     match lexeme {
         "and" => TokenType::And,
         "class" => TokenType::Class,
@@ -144,11 +132,9 @@ fn map_lexeme_to_keyword<'a>(lexeme: &'a str) -> TokenType {
     }
 }
 
-fn string<'a, I>(iter: &mut MultiPeek<I>,
-                 line: &'a str,
-                 start: usize)
-                 -> Option<(&'a str, Literal<'a>)>
-    where I: Iterator<Item = (usize, char)>
+fn string<'a, I>(iter: &mut MultiPeek<I>, line: &'a str, start: usize) -> Option<(&'a str, &'a str)>
+where
+    I: Iterator<Item = (usize, char)>,
 {
     while let Some(&(_, c)) = iter.peek() {
         match c {
@@ -161,16 +147,15 @@ fn string<'a, I>(iter: &mut MultiPeek<I>,
 
     // Either we found the closing double quote, or we have an untermintated string.
     if let Some((i, '"')) = iter.next() {
-        Some((&line[start..i + 1], Literal::Str(&line[start + 1..i])))
+        Some((&line[start..i + 1], &line[start + 1..i]))
     } else {
         None
     }
 }
 
-fn number<'a, I>(iter: &mut MultiPeek<I>,
-                 line: &'a str,
-                 start: usize) -> (&'a str, Literal<'a>)
-    where I: Iterator<Item = (usize, char)>
+fn number<'a, I>(iter: &mut MultiPeek<I>, line: &'a str, start: usize) -> (&'a str, f64)
+where
+    I: Iterator<Item = (usize, char)>,
 {
     // Scan for zero or more digits making up the integral part of the number.
     let integer_length = digits(iter);
@@ -196,13 +181,14 @@ fn number<'a, I>(iter: &mut MultiPeek<I>,
     };
 
     let lexeme = &line[start..start + integer_length + fraction_length + 1];
-    (lexeme, Literal::Number(lexeme.parse().unwrap()))
+    (lexeme, lexeme.parse().unwrap())
 }
 
 // Returns a count of the number consecutive digits. The iterator is advanced so
 // that it points at the last digit in the sequence.
 fn digits<I>(iter: &mut MultiPeek<I>) -> usize
-    where I: Iterator<Item = (usize, char)>
+where
+    I: Iterator<Item = (usize, char)>,
 {
     let mut result: usize = 0;
 
@@ -219,10 +205,9 @@ fn digits<I>(iter: &mut MultiPeek<I>) -> usize
     result
 }
 
-fn identifier<'a, I>(iter: &mut MultiPeek<I>,
-                     line: &'a str,
-                     start: usize) -> &'a str
-    where I: Iterator<Item = (usize, char)>
+fn identifier<'a, I>(iter: &mut MultiPeek<I>, line: &'a str, start: usize) -> &'a str
+where
+    I: Iterator<Item = (usize, char)>,
 {
     let mut length = 0;
 
@@ -241,14 +226,13 @@ fn identifier<'a, I>(iter: &mut MultiPeek<I>,
 
 #[derive(Debug, PartialEq)]
 pub struct Token<'a> {
-    pub token_type: TokenType,
+    pub token_type: TokenType<'a>,
     pub lexeme: &'a str,
-    pub literal: Literal<'a>,
     pub source_position: SourcePosition,
 }
 
-#[derive(Debug, PartialEq, Eq)]
-pub enum TokenType {
+#[derive(Debug, PartialEq)]
+pub enum TokenType<'a> {
     LeftParen,
     RightParen,
     LeftBrace,
@@ -269,8 +253,8 @@ pub enum TokenType {
     LessThan,
     LessThanOrEqual,
     Identifier,
-    Str,
-    Number,
+    Str(&'a str),
+    Number(f64),
     And,
     Class,
     Else,
@@ -290,14 +274,8 @@ pub enum TokenType {
     Eof,
 }
 
-#[derive(Debug, PartialEq)]
-pub enum Literal<'a> {
-    None,
-    Str(&'a str),
-    Number(f64),
-}
-
-// Source position is defined by a tuple containing the line number and character index.
+// Source position is defined by a tuple containing the line number and
+// character index.
 pub type SourcePosition = (usize, usize);
 
 impl<'a> fmt::Display for Token<'a> {
@@ -331,19 +309,14 @@ mod tests {
         if let Result::Ok(tokens) = lex(source) {
             assert_eq!(tokens.len(), 2);
 
-            let Token { ref token_type, lexeme, ref literal, .. } = tokens[0];
+            let Token {
+                ref token_type,
+                lexeme,
+                ..
+            } = tokens[0];
 
-            assert_eq!(*token_type, TokenType::Number);
+            assert_eq!(*token_type, TokenType::Number(42.0));
             assert_eq!(lexeme, "42.0");
-
-            match literal {
-                &Literal::Number(value) => {
-                    assert_eq!(value, 42.0);
-                },
-                _ => {
-                    panic!("Expected Literal::Number")
-                }
-            };
         } else {
             panic!("Expected Ok");
         }
@@ -356,26 +329,21 @@ mod tests {
         if let Result::Ok(tokens) = lex(source) {
             assert_eq!(tokens.len(), 2);
 
-            let Token { ref token_type, lexeme, ref literal, .. } = tokens[0];
+            let Token {
+                ref token_type,
+                lexeme,
+                ..
+            } = tokens[0];
 
-            assert_eq!(*token_type, TokenType::Str);
+            assert_eq!(*token_type, TokenType::Str("This is a string"));
             assert_eq!(lexeme, "\"This is a string\"");
-
-            match literal {
-                &Literal::Str(value) => {
-                    assert_eq!(value, "This is a string");
-                },
-                _ => {
-                    panic!("Expected Literal::Str")
-                }
-            };
         } else {
             panic!("Expected Ok");
         }
     }
 
     #[test]
-    fn strWithMissingQuote() {
+    fn str_with_missing_quote() {
         let source = "\"Missing closing quote";
 
         if let Result::Ok(_) = lex(source) {
@@ -390,65 +358,95 @@ mod tests {
         if let Result::Ok(tokens) = lex(source) {
             assert_eq!(tokens.len(), 10);
 
-            // identifier
-            let Token { ref token_type, lexeme, ref literal, .. } = tokens[0];
+            // Identifier
+            let Token {
+                ref token_type,
+                lexeme,
+                ..
+            } = tokens[0];
             assert_eq!(*token_type, TokenType::Identifier);
             assert_eq!(lexeme, "identifier");
-            assert_eq!(*literal, Literal::None);
 
             // =
-            let Token { ref token_type, lexeme, ref literal, .. } = tokens[1];
+            let Token {
+                ref token_type,
+                lexeme,
+                ..
+            } = tokens[1];
             assert_eq!(*token_type, TokenType::Equal);
             assert_eq!(lexeme, "=");
-            assert_eq!(*literal, Literal::None);
 
             // (
-            let Token { ref token_type, lexeme, ref literal, .. } = tokens[2];
+            let Token {
+                ref token_type,
+                lexeme,
+                ..
+            } = tokens[2];
             assert_eq!(*token_type, TokenType::LeftParen);
             assert_eq!(lexeme, "(");
-            assert_eq!(*literal, Literal::None);
 
             // 2
-            let Token { ref token_type, lexeme, ref literal, .. } = tokens[3];
-            assert_eq!(*token_type, TokenType::Number);
+            let Token {
+                ref token_type,
+                lexeme,
+                ..
+            } = tokens[3];
+            assert_eq!(*token_type, TokenType::Number(2.0));
             assert_eq!(lexeme, "2");
-            assert_eq!(*literal, Literal::Number(2.0));
 
             // =
-            let Token { ref token_type, lexeme, ref literal, .. } = tokens[4];
+            let Token {
+                ref token_type,
+                lexeme,
+                ..
+            } = tokens[4];
             assert_eq!(*token_type, TokenType::Plus);
             assert_eq!(lexeme, "+");
-            assert_eq!(*literal, Literal::None);
 
             // 3
-            let Token { ref token_type, lexeme, ref literal, .. } = tokens[5];
-            assert_eq!(*token_type, TokenType::Number);
+            let Token {
+                ref token_type,
+                lexeme,
+                ..
+            } = tokens[5];
+            assert_eq!(*token_type, TokenType::Number(3.0));
             assert_eq!(lexeme, "3");
-            assert_eq!(*literal, Literal::Number(3.0));
 
             // )
-            let Token { ref token_type, lexeme, ref literal, .. } = tokens[6];
+            let Token {
+                ref token_type,
+                lexeme,
+                ..
+            } = tokens[6];
             assert_eq!(*token_type, TokenType::RightParen);
             assert_eq!(lexeme, ")");
-            assert_eq!(*literal, Literal::None);
 
             // *
-            let Token { ref token_type, lexeme, ref literal, .. } = tokens[7];
+            let Token {
+                ref token_type,
+                lexeme,
+                ..
+            } = tokens[7];
             assert_eq!(*token_type, TokenType::Asterisk);
             assert_eq!(lexeme, "*");
-            assert_eq!(*literal, Literal::None);
 
             // 1
-            let Token { ref token_type, lexeme, ref literal, .. } = tokens[8];
-            assert_eq!(*token_type, TokenType::Number);
+            let Token {
+                ref token_type,
+                lexeme,
+                ..
+            } = tokens[8];
+            assert_eq!(*token_type, TokenType::Number(1.0));
             assert_eq!(lexeme, "1");
-            assert_eq!(*literal, Literal::Number(1.0));
 
             // EOF
-            let Token { ref token_type, lexeme, ref literal, .. } = tokens[9];
+            let Token {
+                ref token_type,
+                lexeme,
+                ..
+            } = tokens[9];
             assert_eq!(*token_type, TokenType::Eof);
             assert_eq!(lexeme, "");
-            assert_eq!(*literal, Literal::None);
         } else {
             panic!("Expected Ok");
         }

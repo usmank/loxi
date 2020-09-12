@@ -1,6 +1,5 @@
 use lexer;
 use parser;
-use std::error::Error;
 use std::fs::File;
 use std::io::{self, Read, Write};
 use std::path::Path;
@@ -10,12 +9,13 @@ pub fn run_file(filename: &str) {
     let path = Path::new(filename);
 
     let mut file = match File::open(&path) {
-        Err(reason) => panic!("Couldn't open {}: {}", path.display(), reason.description()),
+        Err(reason) => panic!("Couldn't open {}: {}", path.display(), reason),
         Ok(f) => f,
     };
 
     let mut source = String::new();
-    file.read_to_string(&mut source).expect("Couldn't read from file");
+    file.read_to_string(&mut source)
+        .expect("Couldn't read from file");
 
     run(&source);
 }
@@ -26,7 +26,9 @@ pub fn run_repl() {
         let mut line = String::new();
         print!("> ");
         io::stdout().flush().unwrap();
-        io::stdin().read_line(&mut line).expect("Couldn't read from stdin");
+        io::stdin()
+            .read_line(&mut line)
+            .expect("Couldn't read from stdin");
 
         run(&line);
     }

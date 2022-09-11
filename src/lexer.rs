@@ -65,7 +65,7 @@ pub fn lex(source: &str) -> Result<Vec<Token>> {
                     Some((lexeme, literal)) => (TokenType::Str(literal), lexeme),
                     None => {
                         return Err(Error::SyntaxError {
-                            message: "String literal missing closing '\"'".to_string(),
+                            message: String::from("String literal missing closing '\"'"),
                             source_position,
                         });
                     }
@@ -102,7 +102,7 @@ pub fn lex(source: &str) -> Result<Vec<Token>> {
     // Append EOF token once we hit the end.
     tokens.push(Token {
         token_type: TokenType::Eof,
-        lexeme: "",
+        lexeme: "EOF",
         source_position: (0, 0),
     });
 
@@ -280,7 +280,7 @@ pub type SourcePosition = (usize, usize);
 
 impl<'a> fmt::Display for Token<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.lexeme)
+        writeln!(f, "{} @ {:?}", self.lexeme, self.source_position)
     }
 }
 
@@ -446,7 +446,7 @@ mod tests {
                 ..
             } = tokens[9];
             assert_eq!(*token_type, TokenType::Eof);
-            assert_eq!(lexeme, "");
+            assert_eq!(lexeme, "EOF");
         } else {
             panic!("Expected Ok");
         }

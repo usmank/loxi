@@ -30,6 +30,11 @@ pub fn run_repl() {
             .read_line(&mut line)
             .expect("Couldn't read from stdin");
 
+        // Exit loop on Ctrl+D.
+        if line.is_empty() {
+            break;
+        }
+
         run(&line);
     }
 }

@@ -1,5 +1,5 @@
-use lexer::Token;
-use result::Result;
+use crate::lexer::Token;
+use crate::result::Result;
 
 pub fn parse(tokens: &[Token]) -> Result<()> {
     println!("Tokens: ");

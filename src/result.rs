@@ -1,4 +1,4 @@
-use lexer::SourcePosition;
+use crate::lexer::SourcePosition;
 use std::fmt;
 use std::result;
 

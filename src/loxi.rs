@@ -1,5 +1,5 @@
-use lexer;
-use parser;
+use crate::lexer;
+use crate::parser;
 use std::error::Error;
 use std::fs;
 use std::io::{self, Write};

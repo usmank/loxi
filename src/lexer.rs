@@ -1,5 +1,5 @@
 use itertools::{multipeek, MultiPeek};
-use result::{Error, Result};
+use crate::result::{Error, Result};
 use std::fmt;
 
 const RADIX: u32 = 10;

@@ -11,7 +11,7 @@
 //            | "+"  | "-"  | "*" | "/"
 //
 
-use binary_tree::BinaryTree;
-use lexer::Token;
+use crate::binary_tree::BinaryTree;
+use crate::lexer::Token;
 
 type Ast<'a> = BinaryTree<Token<'a>>;

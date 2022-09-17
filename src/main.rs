@@ -1,10 +1,9 @@
-extern crate exitcode;
-extern crate loxi;
-
+use exitcode;
+use loxi::loxi;
 use std::cmp::Ordering;
 use std::env;
 
-fn process_error_and_exit(result: &loxi::loxi::Result) {
+fn process_error_and_exit(result: &loxi::Result) {
     match result {
         Ok(_) => std::process::exit(exitcode::OK),
         Err(e) => {
@@ -19,11 +18,11 @@ fn main() {
 
     match args.len().cmp(&2) {
         Ordering::Equal => {
-            let result = loxi::loxi::run_file(&args[1]);
+            let result = loxi::run_file(&args[1]);
             process_error_and_exit(&result);
         },
         Ordering::Less => {
-            let result = loxi::loxi::run_repl();
+            let result = loxi::run_repl();
             process_error_and_exit(&result);
         },
         Ordering::Greater => {

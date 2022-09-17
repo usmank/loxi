@@ -1,8 +1,6 @@
 // TODO: Temporary, remove later
 #![allow(dead_code)]
 
-extern crate itertools;
-
 pub mod loxi;
 
 mod ast;

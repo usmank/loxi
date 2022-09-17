@@ -1,6 +1,7 @@
 [package]
 name = "loxi"
 version = "0.1.0"
+edition = "2021"
 authors = ["Usman Khan <usman@usmankhan.ca>"]
 
 [dependencies]

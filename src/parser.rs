@@ -5,7 +5,7 @@ pub fn parse(tokens: &[Token]) -> Result<()> {
     println!("Tokens: ");
 
     for token in tokens {
-        print!("{}", token);
+        print!("{} ", token);
     }
 
     println!();

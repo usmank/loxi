@@ -21,7 +21,7 @@ impl<'a> fmt::Display for Error {
             Error::SyntaxError {
                 message: ref m,
                 source_position: (l, c),
-            } => write!(f, "Syntax Error [line: {}, col: {}]: {}", l, c, m),
+            } => write!(f, "Syntax Error [ln: {}, col: {}]: {}", l, c, m),
             Error::MultipleErrors(ref errors) => {
                 for error in errors {
                     write!(f, "{}", error)?;

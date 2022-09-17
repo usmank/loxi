@@ -1,14 +1,34 @@
+extern crate exitcode;
 extern crate loxi;
 
 use std::cmp::Ordering;
 use std::env;
 
+fn process_error_and_exit(result: &loxi::loxi::Result) {
+    match result {
+        Ok(_) => std::process::exit(exitcode::OK),
+        Err(e) => {
+            eprintln!("{}", e);
+            std::process::exit(1)
+        },
+    }
+}
+
 fn main() {
     let args: Vec<String> = env::args().collect();
 
     match args.len().cmp(&2) {
-        Ordering::Greater => println!("Usage: loxi [script]"),
-        Ordering::Equal => loxi::loxi::run_file(&args[1]),
-        Ordering::Less => loxi::loxi::run_repl(),
-    }
+        Ordering::Equal => {
+            let result = loxi::loxi::run_file(&args[1]);
+            process_error_and_exit(&result);
+        },
+        Ordering::Less => {
+            let result = loxi::loxi::run_repl();
+            process_error_and_exit(&result);
+        },
+        Ordering::Greater => {
+            println!("Usage: loxi [script]");
+            std::process::exit(exitcode::USAGE);
+        },
+    };
 }

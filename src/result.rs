@@ -4,7 +4,6 @@ use std::result;
 
 pub type Result<T> = result::Result<T, Error>;
 
-#[allow(dead_code)]
 #[derive(Debug)]
 pub enum Error {
     SyntaxError {
@@ -14,13 +13,15 @@ pub enum Error {
     MultipleErrors(Vec<Error>),
 }
 
+impl std::error::Error for Error {}
+
 impl<'a> fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             Error::SyntaxError {
                 message: ref m,
                 source_position: (l, c),
-            } => write!(f, "Syntax Error @ {}:{}: {}", l, c, m),
+            } => write!(f, "Syntax Error [line: {}, col: {}]: {}", l, c, m),
             Error::MultipleErrors(ref errors) => {
                 for error in errors {
                     write!(f, "{}", error)?;

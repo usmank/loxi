@@ -4,4 +4,5 @@ version = "0.1.0"
 authors = ["Usman Khan <usman@usmankhan.ca>"]
 
 [dependencies]
+exitcode = "1.1.2"
 itertools = "0.5.9"

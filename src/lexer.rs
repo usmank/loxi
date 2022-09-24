@@ -6,12 +6,23 @@ const RADIX: u32 = 10;
 
 pub fn lex(source: &str) -> Result<Vec<Token>> {
     let mut tokens = Vec::new();
+    let mut in_block_comment = false;
 
     'line_loop: for (i, line) in source.lines().enumerate() {
         let char_indices = line.char_indices();
         let mut iter = multipeek(char_indices);
 
-        while let Some((j, c)) = iter.next() {
+        while in_block_comment {
+            let found_end = scan_for_block_comment_end(&mut iter);
+
+            if found_end {
+                in_block_comment = false;
+            } else {
+                continue 'line_loop;
+            }
+        }
+
+        'char_loop: while let Some((j, c)) = iter.next() {
             let source_position = (i + 1, j + 1);
             let (token_type, lexeme) = match c {
                 '(' => (TokenType::LeftParen, &line[j..j + 1]),
@@ -30,33 +41,41 @@ pub fn lex(source: &str) -> Result<Vec<Token>> {
                         (TokenType::BangEqual, &line[j..j + 2])
                     }
                     _ => (TokenType::Bang, &line[j..j + 1]),
-                },
+                }
                 '=' => match iter.peek() {
                     Some(&(_, '=')) => {
                         iter.next();
                         (TokenType::EqualEqual, &line[j..j + 2])
                     }
                     _ => (TokenType::Equal, &line[j..j + 1]),
-                },
+                }
                 '<' => match iter.peek() {
                     Some(&(_, '=')) => {
                         iter.next();
                         (TokenType::LessThanOrEqual, &line[j..j + 2])
                     }
                     _ => (TokenType::LessThan, &line[j..j + 1]),
-                },
+                }
                 '>' => match iter.peek() {
                     Some(&(_, '=')) => {
                         iter.next();
                         (TokenType::GreaterThanOrEqual, &line[j..j + 2])
                     }
                     _ => (TokenType::GreaterThan, &line[j..j + 1]),
-                },
+                }
                 '/' => {
                     match iter.peek() {
                         Some(&(_, '/')) => {
                             // Encountered a comment, ignore the rest and continue to next line.
                             continue 'line_loop;
+                        }
+                        Some(&(_, '*')) => {
+                            in_block_comment = true;
+                            iter.next();
+                            if scan_for_block_comment_end(&mut iter) {
+                                in_block_comment = false;
+                            }
+                            continue 'char_loop;
                         }
                         _ => (TokenType::Slash, &line[j..j + 1]),
                     }
@@ -69,7 +88,7 @@ pub fn lex(source: &str) -> Result<Vec<Token>> {
                             source_position,
                         });
                     }
-                },
+                }
                 // Number
                 c if c.is_digit(RADIX) => {
                     let (lexeme, literal) = number(&mut iter, line, j);
@@ -91,6 +110,7 @@ pub fn lex(source: &str) -> Result<Vec<Token>> {
                     });
                 }
             };
+
             tokens.push(Token {
                 token_type,
                 lexeme,
@@ -109,7 +129,7 @@ pub fn lex(source: &str) -> Result<Vec<Token>> {
     Ok(tokens)
 }
 
-// Maps the given lexeme to the corresponding TokenType.
+// Maps the given 'lexeme' to the corresponding TokenType.
 fn map_lexeme_to_keyword(lexeme: &str) -> TokenType {
     match lexeme {
         "and" => TokenType::And,
@@ -211,18 +231,32 @@ where
 {
     let mut length = 0;
 
-    while let Some(&(_, c)) = iter.peek() {
-        match c {
-            c if c.is_alphanumeric() => {
-                length += 1;
-                iter.next();
-            }
-            _ => break,
+    while let Some((_, c)) = iter.next() {
+        if !c.is_alphanumeric() {
+            break;
         }
+
+        length += 1;
     }
 
     &line[start..start + length + 1]
 }
+
+fn scan_for_block_comment_end<I>(iter: &mut MultiPeek<I>) -> bool
+where
+    I: Iterator<Item = (usize, char)>,
+{
+    loop {
+        let _ = iter.by_ref().skip_while(|(_, x)| *x != '*');
+
+        match iter.next() {
+            Some((_, '/')) => return true, // Found end of block comment
+            None => return false, // End of line without end of block comment
+            _ => (),
+        }
+    }
+}
+
 
 #[derive(Debug, PartialEq)]
 pub struct Token<'a> {
@@ -280,7 +314,7 @@ pub type SourcePosition = (usize, usize);
 
 impl<'a> fmt::Display for Token<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "[{}@{:?}]", self.lexeme, self.source_position)
+        write!(f, "[\"{}\":{:?}@{:?}]", self.lexeme, self.token_type, self.source_position)
     }
 }
 

@@ -1,5 +1,5 @@
-use itertools::{multipeek, MultiPeek};
 use crate::result::{Error, Result};
+use itertools::{multipeek, MultiPeek};
 use std::fmt;
 
 const RADIX: u32 = 10;
@@ -41,28 +41,28 @@ pub fn lex(source: &str) -> Result<Vec<Token>> {
                         (TokenType::BangEqual, &line[j..j + 2])
                     }
                     _ => (TokenType::Bang, &line[j..j + 1]),
-                }
+                },
                 '=' => match iter.peek() {
                     Some(&(_, '=')) => {
                         iter.next();
                         (TokenType::EqualEqual, &line[j..j + 2])
                     }
                     _ => (TokenType::Equal, &line[j..j + 1]),
-                }
+                },
                 '<' => match iter.peek() {
                     Some(&(_, '=')) => {
                         iter.next();
                         (TokenType::LessThanOrEqual, &line[j..j + 2])
                     }
                     _ => (TokenType::LessThan, &line[j..j + 1]),
-                }
+                },
                 '>' => match iter.peek() {
                     Some(&(_, '=')) => {
                         iter.next();
                         (TokenType::GreaterThanOrEqual, &line[j..j + 2])
                     }
                     _ => (TokenType::GreaterThan, &line[j..j + 1]),
-                }
+                },
                 '/' => {
                     match iter.peek() {
                         Some(&(_, '/')) => {
@@ -88,7 +88,7 @@ pub fn lex(source: &str) -> Result<Vec<Token>> {
                             source_position,
                         });
                     }
-                }
+                },
                 // Number
                 c if c.is_digit(RADIX) => {
                     let (lexeme, literal) = number(&mut iter, line, j);
@@ -251,12 +251,11 @@ where
 
         match iter.next() {
             Some((_, '/')) => return true, // Found end of block comment
-            None => return false, // End of line without end of block comment
+            None => return false,          // End of line without end of block comment
             _ => (),
         }
     }
 }
-
 
 #[derive(Debug, PartialEq)]
 pub struct Token<'a> {
@@ -314,7 +313,11 @@ pub type SourcePosition = (usize, usize);
 
 impl<'a> fmt::Display for Token<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "[\"{}\":{:?}@{:?}]", self.lexeme, self.token_type, self.source_position)
+        write!(
+            f,
+            "[\"{}\":{:?}@{:?}]",
+            self.lexeme, self.token_type, self.source_position
+        )
     }
 }
 

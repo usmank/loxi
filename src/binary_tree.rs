@@ -1,4 +1,3 @@
-
 #[derive(Debug, PartialEq, Eq)]
 pub enum BinaryTree<T> {
     Empty,
@@ -25,12 +24,12 @@ impl<T> BinaryTree<T> {
     }
 
     // Create a node with the specified 'value', having the specified 'left' and 'right' children.
-    pub fn new_node_with_children(value: T, left: Box<BinaryTree<T>>, right: Box<BinaryTree<T>>) -> BinaryTree<T> {
-        BinaryTree::Node {
-            value,
-            left,
-            right,
-        }
+    pub fn new_node_with_children(
+        value: T,
+        left: Box<BinaryTree<T>>,
+        right: Box<BinaryTree<T>>,
+    ) -> BinaryTree<T> {
+        BinaryTree::Node { value, left, right }
     }
 
     // Return true if this node is empty.
@@ -85,7 +84,7 @@ mod tests {
                 assert_eq!(value, 42i32);
                 assert!(left.is_empty());
                 assert!(right.is_empty());
-            },
+            }
             _ => panic!("Expected Node, got something else"),
         }
     }
@@ -95,7 +94,7 @@ mod tests {
         let root = BinaryTree::new_node_with_children(
             42i32,
             Box::new(BinaryTree::new_node(1i32)),
-            Box::new(BinaryTree::<i32>::new())
+            Box::new(BinaryTree::<i32>::new()),
         );
 
         match root {
@@ -103,7 +102,7 @@ mod tests {
                 assert_eq!(value, 42);
                 assert_eq!(*left, BinaryTree::new_node(1i32));
                 assert!(right.is_empty());
-            },
+            }
             _ => panic!("Expected Node with specific left and right children, got something else"),
         }
     }
@@ -128,11 +127,15 @@ mod tests {
                 assert_eq!(*value, 42);
 
                 match &**left {
-                    &BinaryTree::Node { ref value, ref left, ref right } => {
+                    &BinaryTree::Node {
+                        ref value,
+                        ref left,
+                        ref right,
+                    } => {
                         assert_eq!(*value, 1i32);
                         assert_eq!(**left, BinaryTree::Empty);
                         assert_eq!(**right, BinaryTree::Empty);
-                    },
+                    }
                     _ => panic!("Unexpected variant for left child"),
                 };
 
@@ -141,7 +144,7 @@ mod tests {
                 } else {
                     panic!("Unexpected variant for right child")
                 }
-            },
+            }
             _ => panic!("Unexpected variant"),
         }
     }
@@ -166,14 +169,18 @@ mod tests {
                 }
 
                 match &**right {
-                    &BinaryTree::Node {ref value, ref left, ref right} => {
+                    &BinaryTree::Node {
+                        ref value,
+                        ref left,
+                        ref right,
+                    } => {
                         assert_eq!(*value, 1);
                         assert_eq!(**left, BinaryTree::Empty);
                         assert_eq!(**right, BinaryTree::Empty);
-                    },
+                    }
                     _ => panic!("Unexpected variant for right child"),
                 };
-            },
+            }
             _ => panic!("Unexpected variant"),
         }
     }

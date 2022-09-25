@@ -27,8 +27,7 @@ pub fn run_repl() -> Result {
         let mut line = String::new();
         print!("> ");
         io::stdout().flush().unwrap();
-        io::stdin()
-            .read_line(&mut line)?;
+        io::stdin().read_line(&mut line)?;
 
         // Exit loop on Ctrl+D.
         if line.is_empty() {
@@ -40,7 +39,7 @@ pub fn run_repl() -> Result {
         if let Err(error) = result {
             eprintln!("{}", error);
         }
-    };
+    }
 
     Ok(())
 }
@@ -49,6 +48,5 @@ mod tests {
     //use super::*;
 
     #[test]
-    fn dummy() {
-    }
+    fn dummy() {}
 }

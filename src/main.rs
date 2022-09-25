@@ -9,7 +9,7 @@ fn process_error_and_exit(result: &loxi::Result) {
         Err(e) => {
             eprintln!("{}", e);
             std::process::exit(1)
-        },
+        }
     }
 }
 
@@ -20,14 +20,14 @@ fn main() {
         Ordering::Equal => {
             let result = loxi::run_file(&args[1]);
             process_error_and_exit(&result);
-        },
+        }
         Ordering::Less => {
             let result = loxi::run_repl();
             process_error_and_exit(&result);
-        },
+        }
         Ordering::Greater => {
             println!("Usage: loxi [script]");
             std::process::exit(exitcode::USAGE);
-        },
+        }
     };
 }

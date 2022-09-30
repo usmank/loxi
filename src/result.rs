@@ -10,6 +10,10 @@ pub enum Error {
         message: String,
         source_position: SourcePosition,
     },
+    ParseError {
+        message: String,
+        source_position: SourcePosition,
+    },
     MultipleErrors(Vec<Error>),
 }
 
@@ -22,6 +26,12 @@ impl<'a> fmt::Display for Error {
                 message: ref m,
                 source_position: (l, c),
             } => write!(f, "Syntax Error [ln: {}, col: {}]: {}", l, c, m),
+            Error::ParseError {
+                message: ref m,
+                source_position: (l, c),
+            } => {
+                write!(f, "Parse Error [ln: {}, col: {}]: {}", l, c, m)
+            }
             Error::MultipleErrors(ref errors) => {
                 for error in errors {
                     write!(f, "{}", error)?;

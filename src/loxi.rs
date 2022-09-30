@@ -9,7 +9,8 @@ pub type Result = std::result::Result<(), Box<dyn Error>>;
 
 fn run(source: &str) -> Result {
     let tokens = lexer::lex(source)?;
-    let _ast = parser::parse(&tokens)?;
+    let ast = parser::parse(&tokens)?;
+    println!("{ast}");
     Ok(())
 }
 

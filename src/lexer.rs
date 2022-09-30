@@ -257,14 +257,14 @@ where
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub struct Token<'a> {
     pub token_type: TokenType<'a>,
     pub lexeme: &'a str,
     pub source_position: SourcePosition,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum TokenType<'a> {
     LeftParen,
     RightParen,

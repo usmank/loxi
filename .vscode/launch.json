@@ -1,12 +1,13 @@
 {
     "version": "0.2.0",
     "configurations": [
+
         {
             "type": "lldb",
             "request": "launch",
             "name": "Debug File",
             "program": "${workspaceRoot}/target/debug/loxi",
-            "args": ["${workspaceRoot}/src/test/test.lox"],
+            "args": ["${workspaceRoot}/src/tests/test.lox"],
             "cwd": "${workspaceRoot}",
             "terminal": "integrated"
         },

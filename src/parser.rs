@@ -31,6 +31,7 @@
 
 use crate::ast::{Expression, LiteralValue};
 use crate::lexer::{Token, TokenType};
+use crate::result::Error;
 use std::iter::Peekable;
 
 pub type Result<'a> = crate::result::Result<Box<Expression<Token<'a>>>>;
@@ -174,46 +175,79 @@ fn primary<'a, I>(iter: &mut Peekable<I>) -> Result<'a>
 where
     I: Iterator<Item = &'a Token<'a>>,
 {
-    let expr = if let Some(&token) = iter.peek() {
-        match token.token_type {
-            TokenType::Number(n) => {
-                iter.next();
-                Box::new(Expression::Literal(LiteralValue::Number(n)))
-            }
-            TokenType::Str(s) => {
-                iter.next();
-                Box::new(Expression::Literal(LiteralValue::String(s.to_string())))
-            }
-            TokenType::True => {
-                iter.next();
-                Box::new(Expression::Literal(LiteralValue::True))
-            }
-            TokenType::False => {
-                iter.next();
-                Box::new(Expression::Literal(LiteralValue::False))
-            }
-            TokenType::Nil => {
-                iter.next();
-                Box::new(Expression::Literal(LiteralValue::Nil))
-            }
-            TokenType::LeftParen => {
-                iter.next();
-                let inner_expr = expression(iter)?;
-
-                if let Some(&Token { token_type, ..}) = iter.peek() {
-                    if *token_type != TokenType::RightParen {
-                        panic!("Did not find matching right parenthesis");
-                    }
-                    iter.next();
-                }
-
-                Box::new(Expression::Grouping(inner_expr))
-            }
-            _ => panic!("Something bork"),
-        }
-    } else {
-        panic!("Could not parse pimary")
+    let create_error = |position| Error::ParseError {
+        message: "expected expression".to_string(),
+        source_position: position,
     };
 
-    Ok(expr)
+    let &token = iter.peek().ok_or_else(|| create_error((0, 0)))?;
+
+    match token.token_type {
+        TokenType::Number(n) => {
+            iter.next();
+            Ok(Box::new(Expression::Literal(LiteralValue::Number(n))))
+        }
+        TokenType::Str(s) => {
+            iter.next();
+            Ok(Box::new(Expression::Literal(LiteralValue::String(
+                s.to_string(),
+            ))))
+        }
+        TokenType::True => {
+            iter.next();
+            Ok(Box::new(Expression::Literal(LiteralValue::True)))
+        }
+        TokenType::False => {
+            iter.next();
+            Ok(Box::new(Expression::Literal(LiteralValue::False)))
+        }
+        TokenType::Nil => {
+            iter.next();
+            Ok(Box::new(Expression::Literal(LiteralValue::Nil)))
+        }
+        TokenType::LeftParen => {
+            iter.next();
+            let inner_expr = expression(iter)?;
+
+            if let Some(&Token { token_type, .. }) = iter.peek() {
+                if *token_type != TokenType::RightParen {
+                    return Err(Error::ParseError {
+                        message: "expected ')'".to_string(),
+                        source_position: token.source_position,
+                    });
+                }
+                iter.next();
+            }
+
+            Ok(Box::new(Expression::Grouping(inner_expr)))
+        }
+        _ => Err(create_error(token.source_position)),
+    }
+}
+
+// Consume tokens until we hit a synchronization point. A synchronization point
+// is either a semicolon or the start of a new statement (i.e. the keywork
+// class, fun, var, etc.).
+#[allow(dead_code)]
+fn synchronize<'a, I>(iter: &mut Peekable<I>)
+where
+    I: Iterator<Item = &'a Token<'a>>,
+{
+    while let Some(&token) = iter.peek() {
+        match token.token_type {
+            TokenType::Semicolon => {
+                iter.next();
+                break;
+            }
+            TokenType::Class
+            | TokenType::Fun
+            | TokenType::Var
+            | TokenType::For
+            | TokenType::If
+            | TokenType::While
+            | TokenType::Print
+            | TokenType::Return => break,
+            _ => (),
+        }
+    }
 }

@@ -1,9 +1,12 @@
 use crate::lexer;
 use crate::parser;
+use dirs;
+use rustyline::Editor;
+use rustyline::error::ReadlineError;
 use std::error::Error;
 use std::fs;
-use std::io::{self, Write};
 use std::path::Path;
+use std::path::PathBuf;
 
 pub type Result = std::result::Result<(), Box<dyn Error>>;
 
@@ -24,24 +27,32 @@ pub fn run_file(filename: &str) -> Result {
 
 // Receive input from stdin and run each line.
 pub fn run_repl() -> Result {
+    let home_dir = dirs::home_dir().unwrap_or(PathBuf::from("."));
+    let history_file = home_dir.join(".loxi.history");
+
+    let mut rl = Editor::<()>::new()?;
+    if rl.load_history(&history_file).is_err() {
+        eprintln!("No history loaded");
+    }
+
     loop {
-        let mut line = String::new();
-        print!("> ");
-        io::stdout().flush().unwrap();
-        io::stdin().read_line(&mut line)?;
+        let line = rl.readline("> ");
 
-        // Exit loop on Ctrl+D.
-        if line.is_empty() {
-            break;
-        }
+        match line {
+            Ok(line) => {
+                rl.add_history_entry(line.as_str());
 
-        let result = run(&line);
-
-        if let Err(error) = result {
-            eprintln!("{}", error);
+                if let Err(error) = run(&line) {
+                    eprintln!("{}", error);
+                }
+            }
+            Err(ReadlineError::Interrupted) => break,
+            Err(ReadlineError::Eof) => break,
+            Err(error) => eprintln!("Error: {}", error),
         }
     }
 
+    rl.save_history(&history_file)?;
     Ok(())
 }
 

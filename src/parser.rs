@@ -9,11 +9,12 @@
 // unary      → ( "-" | "!" ) expression
 // binary     → expression operator expression
 // operator   → "==" | "!=" | "<" | "<=" | ">" | ">="
-//            | "+"  | "-"  | "*" | "/"
+//            | "+"  | "-"  | "*" | "/" | ","
 //
 // PRECEDENCE (Lowest to highest)
 // Name 	    Operators   Associates
 // ----         ---------   ----------
+// Comma 	    ,     	    Left
 // Equality 	== != 	    Left
 // Comparison 	> >= < <= 	Left
 // Term 	    - + 	    Left
@@ -21,7 +22,8 @@
 // Unary    	! - 	    Right
 //
 // STRATIFIED GRAMMAR
-// expression → equality
+// expression → comma
+// comma      → equality ( "," equality )*
 // equality   → comparison ( ( "==" | "!=" ) comparison)*
 // comparison → term ( ( ">" | ">=" | "<" | "<=" ) term)*
 // term       → factor ( ( "+" | "-" ) factor)*
@@ -46,7 +48,31 @@ fn expression<'a, I>(iter: &mut Peekable<I>) -> Result<'a>
 where
     I: Iterator<Item = &'a Token<'a>>,
 {
-    equality(iter)
+    comma(iter)
+}
+
+fn comma<'a, I>(iter: &mut Peekable<I>) -> Result<'a>
+where
+    I: Iterator<Item = &'a Token<'a>>,
+{
+    let mut expr = equality(iter)?;
+
+    while let Some(&token) = iter.peek() {
+        expr = match token.token_type {
+            TokenType::Comma => {
+                iter.next();
+
+                Box::new(Expression::Binary {
+                    operator: *token,
+                    left: expr,
+                    right: equality(iter)?,
+                })
+            }
+            _ => break,
+        }
+    }
+
+    Ok(expr)
 }
 
 fn equality<'a, I>(iter: &mut Peekable<I>) -> Result<'a>

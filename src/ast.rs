@@ -44,7 +44,16 @@ impl<T: fmt::Display> Expression<T> {
 
 impl<T: fmt::Display> fmt::Display for Expression<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.stringify(0))
+        match self {
+            Expression::Literal(value) => write!(f, "{value}"),
+            Expression::Unary { operator, right } => write!(f, "({operator} {right})"),
+            Expression::Binary {
+                operator,
+                left,
+                right,
+            } => write!(f, "({operator} {left} {right})"),
+            Expression::Grouping(expression) => write!(f, "(group {expression})"),
+        }
     }
 }
 
@@ -90,7 +99,6 @@ mod tests {
 
         let output: String = format!("{expr}");
 
-        // Just check the number of lines in output.
-        assert_eq!(output.lines().count(), 4);
+        assert_eq!(output, "(* 3.14 (- 6.28))");
     }
 }

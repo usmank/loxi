@@ -313,11 +313,7 @@ pub type SourcePosition = (usize, usize);
 
 impl<'a> fmt::Display for Token<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(
-            f,
-            "[\"{}\":{:?}@{:?}]",
-            self.lexeme, self.token_type, self.source_position
-        )
+        write!(f, "{}", self.lexeme)
     }
 }
 

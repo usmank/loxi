@@ -12,14 +12,14 @@
 //            | "+"  | "-"  | "*" | "/" | ","
 //
 // PRECEDENCE (Lowest to highest)
-// Name 	    Operators   Associates
+// Name         Operators   Associates
 // ----         ---------   ----------
-// Comma 	    ,     	    Left
-// Equality 	== != 	    Left
-// Comparison 	> >= < <= 	Left
-// Term 	    - + 	    Left
-// Factor    	/ * 	    Left
-// Unary    	! - 	    Right
+// Comma        ,           Left
+// Equality     == !=       Left
+// Comparison   > >= < <=   Left
+// Term         - +         Left
+// Factor       / *         Left
+// Unary        ! -         Right
 //
 // STRATIFIED GRAMMAR
 // expression → comma

@@ -60,19 +60,12 @@ where
 {
     let mut expr = ternary(iter)?;
 
-    while let Some(&token) = iter.peek() {
-        expr = match token.token_type {
-            TokenType::Comma => {
-                iter.next();
-
-                Box::new(Expression::Binary {
-                    operator: *token,
-                    left: expr,
-                    right: ternary(iter)?,
-                })
-            }
-            _ => break,
-        }
+    while let Some(&token) = match_token(iter, TokenType::Comma) {
+        expr = Box::new(Expression::Binary {
+            operator: token,
+            left: expr,
+            right: ternary(iter)?,
+        });
     }
 
     Ok(expr)
@@ -84,24 +77,18 @@ where
 {
     let mut expr = equality(iter)?;
 
-    if let Some(&token) = iter.peek() {
-        if token.token_type == TokenType::QuestionMark {
-            iter.next();
-            let then_expr = ternary(iter)?;
+    if let Some(&token) = match_token(iter, TokenType::QuestionMark) {
+        let then_expr = ternary(iter)?;
 
-            if let Some(&colon_token) = iter.peek() {
-                if colon_token.token_type == TokenType::Colon {
-                    iter.next();
-                    let else_expr = ternary(iter)?;
+        if let Some(_) = match_token(iter, TokenType::Colon) {
+            let else_expr = ternary(iter)?;
 
-                    expr = Box::new(Expression::Ternary {
-                        operator: *token,
-                        left: expr,
-                        middle: then_expr,
-                        right: else_expr,
-                    })
-                }
-            }
+            expr = Box::new(Expression::Ternary {
+                operator: token,
+                left: expr,
+                middle: then_expr,
+                right: else_expr,
+            })
         }
     }
 
@@ -114,19 +101,12 @@ where
 {
     let mut expr = comparison(iter)?;
 
-    while let Some(&token) = iter.peek() {
-        expr = match token.token_type {
-            TokenType::BangEqual | TokenType::EqualEqual => {
-                iter.next();
-
-                Box::new(Expression::Binary {
-                    operator: *token,
-                    left: expr,
-                    right: comparison(iter)?,
-                })
-            }
-            _ => break,
-        };
+    while let Some(&token) = match_token_any(iter, &[TokenType::BangEqual, TokenType::EqualEqual]) {
+        expr = Box::new(Expression::Binary {
+            operator: token,
+            left: expr,
+            right: comparison(iter)?,
+        });
     }
 
     Ok(expr)
@@ -138,22 +118,19 @@ where
 {
     let mut expr = term(iter)?;
 
-    while let Some(&token) = iter.peek() {
-        expr = match token.token_type {
-            TokenType::GreaterThan
-            | TokenType::GreaterThanOrEqual
-            | TokenType::LessThan
-            | TokenType::LessThanOrEqual => {
-                iter.next();
+    let tokens_to_match = [
+        TokenType::GreaterThan,
+        TokenType::GreaterThanOrEqual,
+        TokenType::LessThan,
+        TokenType::LessThanOrEqual,
+    ];
 
-                Box::new(Expression::Binary {
-                    operator: *token,
-                    left: expr,
-                    right: term(iter)?,
-                })
-            }
-            _ => break,
-        };
+    while let Some(&token) = match_token_any(iter, &tokens_to_match) {
+        expr = Box::new(Expression::Binary {
+            operator: token,
+            left: expr,
+            right: term(iter)?,
+        });
     }
 
     Ok(expr)
@@ -165,19 +142,12 @@ where
 {
     let mut expr = factor(iter)?;
 
-    while let Some(&token) = iter.peek() {
-        expr = match token.token_type {
-            TokenType::Plus | TokenType::Minus => {
-                iter.next();
-
-                Box::new(Expression::Binary {
-                    operator: *token,
-                    left: expr,
-                    right: factor(iter)?,
-                })
-            }
-            _ => break,
-        };
+    while let Some(&token) = match_token_any(iter, &[TokenType::Plus, TokenType::Minus]) {
+        expr = Box::new(Expression::Binary {
+            operator: token,
+            left: expr,
+            right: factor(iter)?,
+        })
     }
 
     Ok(expr)
@@ -189,19 +159,12 @@ where
 {
     let mut expr = unary(iter)?;
 
-    while let Some(&token) = iter.peek() {
-        expr = match token.token_type {
-            TokenType::Asterisk | TokenType::Slash => {
-                iter.next();
-
-                Box::new(Expression::Binary {
-                    operator: *token,
-                    left: expr,
-                    right: unary(iter)?,
-                })
-            }
-            _ => break,
-        };
+    while let Some(&token) = match_token_any(iter, &[TokenType::Asterisk, TokenType::Slash]) {
+        expr = Box::new(Expression::Binary {
+            operator: token,
+            left: expr,
+            right: unary(iter)?,
+        });
     }
 
     Ok(expr)
@@ -211,23 +174,14 @@ fn unary<'a, I>(iter: &mut Peekable<I>) -> Result<'a>
 where
     I: Iterator<Item = &'a Token<'a>>,
 {
-    let expr = if let Some(&token) = iter.peek() {
-        match token.token_type {
-            TokenType::Bang | TokenType::Minus => {
-                iter.next();
-
-                Box::new(Expression::Unary {
-                    operator: *token,
-                    right: unary(iter)?,
-                })
-            }
-            _ => primary(iter)?,
-        }
+    if let Some(&token) = match_token_any(iter, &[TokenType::Bang, TokenType::Minus]) {
+        Ok(Box::new(Expression::Unary {
+            operator: token,
+            right: unary(iter)?,
+        }))
     } else {
-        panic!("AAAAAHHH")
-    };
-
-    Ok(expr)
+        primary(iter)
+    }
 }
 
 fn primary<'a, I>(iter: &mut Peekable<I>) -> Result<'a>
@@ -268,20 +222,47 @@ where
             iter.next();
             let inner_expr = expression(iter)?;
 
-            if let Some(&Token { token_type, .. }) = iter.peek() {
-                if *token_type != TokenType::RightParen {
-                    return Err(Error::ParseError {
-                        message: "expected ')'".to_string(),
-                        source_position: token.source_position,
-                    });
-                }
-                iter.next();
+            if match_token(iter, TokenType::RightParen).is_none() {
+                return Err(Error::ParseError {
+                    message: "expected ')'".to_string(),
+                    source_position: token.source_position,
+                });
             }
 
             Ok(Box::new(Expression::Grouping(inner_expr)))
         }
         _ => Err(create_error(token.source_position)),
     }
+}
+
+// Peek ahead and check if the token type matches the specified 'token_type'.
+// Advance the iterator and return 'Some(token)' if true, and 'None' otherwise.
+fn match_token<'a, I>(iter: &mut Peekable<I>, token_type: TokenType) -> Option<&'a Token<'a>>
+where
+    I: Iterator<Item = &'a Token<'a>>,
+{
+    if iter.peek()?.token_type != token_type {
+        return None;
+    }
+
+    iter.next()
+}
+
+// Peek ahead and check if the token type matches any of the specified
+// 'token_types'.  Advance the iterator and return 'Some(token)' if true, and
+// 'None' otherwise.
+fn match_token_any<'a, I>(
+    iter: &mut Peekable<I>,
+    token_types: &[TokenType],
+) -> Option<&'a Token<'a>>
+where
+    I: Iterator<Item = &'a Token<'a>>,
+{
+    if !token_types.contains(&iter.peek()?.token_type) {
+        return None;
+    }
+
+    iter.next()
 }
 
 // Consume tokens until we hit a synchronization point. A synchronization point

@@ -35,6 +35,8 @@ pub fn lex(source: &str) -> Result<Vec<Token>> {
                 '+' => (TokenType::Plus, &line[j..j + 1]),
                 ';' => (TokenType::Semicolon, &line[j..j + 1]),
                 '*' => (TokenType::Asterisk, &line[j..j + 1]),
+                '?' => (TokenType::QuestionMark, &line[j..j + 1]),
+                ':' => (TokenType::Colon, &line[j..j + 1]),
                 '!' => match iter.peek() {
                     Some(&(_, '=')) => {
                         iter.next();
@@ -277,6 +279,8 @@ pub enum TokenType<'a> {
     Semicolon,
     Slash,
     Asterisk,
+    Colon,
+    QuestionMark,
     Bang,
     BangEqual,
     Equal,

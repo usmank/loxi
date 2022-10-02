@@ -11,35 +11,13 @@ pub enum Expression<T> {
         left: Box<Expression<T>>,
         right: Box<Expression<T>>,
     },
+    Ternary {
+        operator: T,
+        left: Box<Expression<T>>,
+        middle: Box<Expression<T>>,
+        right: Box<Expression<T>>,
+    },
     Grouping(Box<Expression<T>>),
-}
-
-impl<T: fmt::Display> Expression<T> {
-    fn stringify(&self, indent: usize) -> String {
-        let spacer = format!("{:.<indent$} ", "");
-        let nested_indent = indent + 4;
-
-        match self {
-            Expression::Literal(value) => format!("{spacer}{value}"),
-            Expression::Unary { operator, right } => {
-                format!("{spacer}{operator}\n{}", right.stringify(nested_indent))
-            }
-            Expression::Binary {
-                operator,
-                left,
-                right,
-            } => {
-                format!(
-                    "{spacer}{operator}\n{}\n{}",
-                    left.stringify(nested_indent),
-                    right.stringify(nested_indent)
-                )
-            }
-            Expression::Grouping(expression) => {
-                format!("{spacer}grouping\n{}", expression.stringify(nested_indent))
-            }
-        }
-    }
 }
 
 impl<T: fmt::Display> fmt::Display for Expression<T> {
@@ -52,6 +30,12 @@ impl<T: fmt::Display> fmt::Display for Expression<T> {
                 left,
                 right,
             } => write!(f, "({operator} {left} {right})"),
+            Expression::Ternary {
+                operator,
+                left,
+                middle,
+                right,
+            } => write!(f, "({operator} {left} {middle} {right})"),
             Expression::Grouping(expression) => write!(f, "(group {expression})"),
         }
     }

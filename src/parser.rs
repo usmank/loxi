@@ -9,12 +9,14 @@
 // unary      → ( "-" | "!" ) expression
 // binary     → expression operator expression
 // operator   → "==" | "!=" | "<" | "<=" | ">" | ">="
-//            | "+"  | "-"  | "*" | "/" | ","
+//            | "+" | "-"  | "*" | "/" | "," | "?"
+//            | ":"
 //
 // PRECEDENCE (Lowest to highest)
 // Name         Operators   Associates
 // ----         ---------   ----------
 // Comma        ,           Left
+// Ternary      ? :         Right
 // Equality     == !=       Left
 // Comparison   > >= < <=   Left
 // Term         - +         Left
@@ -23,10 +25,11 @@
 //
 // STRATIFIED GRAMMAR
 // expression → comma
-// comma      → equality ( "," equality )*
-// equality   → comparison ( ( "==" | "!=" ) comparison)*
-// comparison → term ( ( ">" | ">=" | "<" | "<=" ) term)*
-// term       → factor ( ( "+" | "-" ) factor)*
+// comma      → ternary ( "," ternary )*
+// ternary    → ( equality "?" ternary ":" ternary ) | equality
+// equality   → comparison ( ( "==" | "!=" ) comparison )*
+// comparison → term ( ( ">" | ">=" | "<" | "<=" ) term )*
+// term       → factor ( ( "+" | "-" ) factor )*
 // factor     → unary ( ( "*" | "/" ) unary )*
 // unary      → ( "-" | "!" ) unary | primary
 // primary    → NUMBER | STRING | "true" | "false" | "nil" | "(" expression ")"
@@ -55,7 +58,7 @@ fn comma<'a, I>(iter: &mut Peekable<I>) -> Result<'a>
 where
     I: Iterator<Item = &'a Token<'a>>,
 {
-    let mut expr = equality(iter)?;
+    let mut expr = ternary(iter)?;
 
     while let Some(&token) = iter.peek() {
         expr = match token.token_type {
@@ -65,10 +68,40 @@ where
                 Box::new(Expression::Binary {
                     operator: *token,
                     left: expr,
-                    right: equality(iter)?,
+                    right: ternary(iter)?,
                 })
             }
             _ => break,
+        }
+    }
+
+    Ok(expr)
+}
+
+fn ternary<'a, I>(iter: &mut Peekable<I>) -> Result<'a>
+where
+    I: Iterator<Item = &'a Token<'a>>,
+{
+    let mut expr = equality(iter)?;
+
+    if let Some(&token) = iter.peek() {
+        if token.token_type == TokenType::QuestionMark {
+            iter.next();
+            let then_expr = ternary(iter)?;
+
+            if let Some(&colon_token) = iter.peek() {
+                if colon_token.token_type == TokenType::Colon {
+                    iter.next();
+                    let else_expr = ternary(iter)?;
+
+                    expr = Box::new(Expression::Ternary {
+                        operator: *token,
+                        left: expr,
+                        middle: then_expr,
+                        right: else_expr,
+                    })
+                }
+            }
         }
     }
 
